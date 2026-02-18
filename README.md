@@ -1,3 +1,13 @@
+---
+license: mit
+tags:
+- gan
+- minecraft
+- generative-ai
+- dcgan
+- image-generation
+---
+
 # PixelForge AI: Minecraft AI Skin Synthesizer 🧊🤖
 
 **PixelForge AI** is a cutting-edge Generative AI suite designed to revolutionize procedural asset creation for Minecraft. Utilizing a customized Deep Convolutional Generative Adversarial Network (DCGAN), the system synthesizes unique 64x64 pixel-art textures that capture the authentic aesthetic of the Minecraft universe.
