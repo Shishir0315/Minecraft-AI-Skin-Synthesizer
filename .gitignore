@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+
+# GAN Data & Outputs
+mc_skin_faces/
+training_checkpoints/
+generated_images/
+static/gallery/
+static/latest.png
+dcgan_generator.keras
+loss_history.json
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/

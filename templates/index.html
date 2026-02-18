@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft GAN | AI Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #5865F2;
+            --secondary: #00D1FF;
+            --accent: #FF00E5;
+            --bg: #090B10;
+            --surface: #14171F;
+            --text: #F0F4F8;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        /* 3D Head Styles */
+        .scene {
+            width: 100px;
+            height: 100px;
+            perspective: 400px;
+            margin: 0 auto 1rem;
+        }
+
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(-20deg) rotateY(45deg);
+            animation: rotateHead 10s linear infinite;
+        }
+
+        .cube__face {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #2c2f33;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            image-rendering: pixelated;
+        }
+
+        .cube__face--front {
+            transform: rotateY(0deg) translateZ(50px);
+        }
+
+        .cube__face--right {
+            transform: rotateY(90deg) translateZ(50px);
+            background: #23272a;
+        }
+
+        .cube__face--back {
+            transform: rotateY(180deg) translateZ(50px);
+        }
+
+        .cube__face--left {
+            transform: rotateY(-90deg) translateZ(50px);
+            background: #23272a;
+        }
+
+        .cube__face--top {
+            transform: rotateX(90deg) translateZ(50px);
+            background: #3c4043;
+        }
+
+        .cube__face--bottom {
+            transform: rotateX(-90deg) translateZ(50px);
+        }
+
+        @keyframes rotateHead {
+            from {
+                transform: rotateX(-20deg) rotateY(0deg);
+            }
+
+            to {
+                transform: rotateX(-20deg) rotateY(360deg);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(88, 101, 242, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 229, 0.15) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            padding: 2rem;
+            text-align: center;
+            z-index: 1;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+        }
+
+        .main-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 2rem;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .image-container {
+            width: 256px;
+            height: 256px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 1.5rem;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(88, 101, 242, 0.2);
+            border: 2px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+
+        .image-container:hover {
+            transform: scale(1.02);
+            border-color: var(--primary);
+            box-shadow: 0 0 50px rgba(88, 101, 242, 0.4);
+        }
+
+        #gen-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary));
+            color: white;
+            border: none;
+            padding: 1.2rem 2.5rem;
+            border-radius: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 20px -5px rgba(88, 101, 242, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -10px rgba(88, 101, 242, 0.6);
+            background: linear-gradient(135deg, #6c79f5, #5865F2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.loading {
+            pointer-events: none;
+            background: #2c2f33;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .status-badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.6rem 1.2rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            position: absolute;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        footer {
+            margin-top: 3rem;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
+                <div class="pulse"></div>
+                <h1 style="margin: 0;">AI Command Center</h1>
+            </div>
+            <p class="subtitle">Deep Convolutional Generative Adversarial Network Monitor</p>
+        </header>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 4rem;">
+            <!-- Left Panel: Live Generator -->
+            <div class="main-card"
+                style="height: 100%; border-radius: 2rem; padding: 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
+                <div class="scene">
+                    <div class="cube">
+                        <div class="cube__face cube__face--front"><img id="preview-face" src="/static/latest.png"
+                                style="width:100%; height:100%; object-fit: cover; image-rendering:pixelated;"></div>
+                        <div class="cube__face cube__face--back"></div>
+                        <div class="cube__face cube__face--right"></div>
+                        <div class="cube__face cube__face--left"></div>
+                        <div class="cube__face cube__face--top"></div>
+                        <div class="cube__face cube__face--bottom"></div>
+                    </div>
+                </div>
+
+                <div class="image-container" style="width: 256px; height: 256px;">
+                    <div id="loader" class="loader hidden"></div>
+                    <img id="gen-image" src="/generate" alt="Generated Minecraft Face"
+                        style="opacity: 1; transition: opacity 0.3s;"
+                        onerror="this.src='https://via.placeholder.com/256/1B2028/FFFFFF?text=Generating...';">
+                </div>
+
+                <div class="controls" style="width: 100%; max-width: 320px;">
+                    <button id="generate-btn" class="btn" style="width: 100%;">Generate New Face</button>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <input type="number" id="seed-input" placeholder="Seed (Int)"
+                            style="flex:1; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 0.5rem; color: white; padding: 0.6rem; font-family: 'JetBrains Mono'; font-size: 0.9rem;">
+                        <button id="seed-btn" class="btn"
+                            style="padding: 0.6rem 1rem; font-size: 0.75rem; box-shadow: none;">SET SEED</button>
+                    </div>
+                    <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.8rem; width: 100%;">
+                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <a id="download-link" href="/generate?download=true" class="status-badge"
+                                style="text-decoration: none; font-weight: 600; cursor: pointer; border-radius: 0.8rem; font-size: 0.75rem; padding: 0.8rem 1rem; background: var(--glass); flex: 1; text-align: center;">FACE
+                                ONLY</a>
+                            <a id="export-link" href="/export" class="status-badge"
+                                style="text-decoration: none; font-weight: 600; cursor: pointer; border-radius: 0.8rem; font-size: 0.75rem; padding: 0.8rem 1rem; background: linear-gradient(135deg, #4facfe, #00f2fe); color: #000; flex: 1; text-align: center;">FULL
+                                SKIN</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Analytics -->
+            <div class="main-card" style="height: 100%; padding: 2.5rem; border-radius: 2rem;">
+                <h3 style="margin-bottom: 1.5rem; opacity: 0.8; text-align: left;">Training Analytics</h3>
+                <div class="status-badge"
+                    style="width: 100%; justify-content: center; margin-bottom: 2rem; background: rgba(0,0,0,0.2);">
+                    Latest Epoch: <span id="model-epoch"
+                        style="color: var(--secondary); font-weight: 800; margin-left: 0.5rem;">?</span>
+                </div>
+                <div
+                    style="width: 100%; height: 320px; background: rgba(0,0,0,0.1); border-radius: 1rem; padding: 1rem;">
+                    <canvas id="lossChart"></canvas>
+                </div>
+                <p class="subtitle"
+                    style="font-size: 0.8rem; margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem; text-align: left; line-height: 1.6;">
+                    <strong style="color: var(--primary);">GAN Dynamics:</strong> Generator strives to create realistic
+                    imagery while the Discriminator attempts to distinguish fakes. Stability is achieved when both lines
+                    converge.
+                </p>
+            </div>
+        </div>
+
+        <div class="history-section" style="width: 100%;">
+            <h2 style="margin-bottom: 2rem; color: #F0F4F8; font-size: 2rem; opacity: 0.9; text-align: left;">Evolution
+                Gallery</h2>
+            <div id="gallery-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem;">
+                <!-- Gallery items dynamically populated -->
+            </div>
+        </div>
+
+        <footer>
+            Deepmind Advanced Agentic Coding &copy; 2026 | DCGAN System v2.0
+        </footer>
+    </div>
+
+    <script>
+        const img = document.getElementById('gen-image');
+        const previewImg = document.getElementById('preview-face');
+        const btn = document.getElementById('generate-btn');
+        const loader = document.getElementById('loader');
+        const epochSpan = document.getElementById('model-epoch');
+        const seedInput = document.getElementById('seed-input');
+        const seedBtn = document.getElementById('seed-btn');
+        const downloadLink = document.getElementById('download-link');
+        const exportLink = document.getElementById('export-link');
+
+        // Chart.js Configuration
+        const ctx = document.getElementById('lossChart').getContext('2d');
+        const lossChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Gen Loss', borderColor: '#5865F2', backgroundColor: 'rgba(88, 101, 242, 0.1)', data: [], tension: 0.4, fill: true },
+                    { label: 'Disc Loss', borderColor: '#FF00E5', backgroundColor: 'rgba(255, 0, 229, 0.1)', data: [], tension: 0.4, fill: true }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                    x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                },
+                plugins: { legend: { labels: { color: 'white', font: { family: 'Outfit' } } } }
+            }
+        });
+
+        async function updateMetrics() {
+            try {
+                const res = await fetch('/metrics');
+                const data = await res.json();
+                if (data.length > 0) {
+                    lossChart.data.labels = data.map(d => `E${d.epoch}`);
+                    lossChart.data.datasets[0].data = data.map(d => d.gen_loss);
+                    lossChart.data.datasets[1].data = data.map(d => d.disc_loss);
+                    lossChart.data.update('none'); // Update without animation for smoother refresh
+                }
+            } catch (e) { console.error("Metrics update failed", e); }
+        }
+
+        async function updateStatus() {
+            try {
+                const res = await fetch('/status');
+                const data = await res.json();
+                epochSpan.textContent = data.latest_epoch;
+            } catch (e) { console.error("Status update failed", e); }
+        }
+
+        async function generate(seed = null) {
+            btn.classList.add('loading');
+            btn.textContent = 'Crunching...';
+            loader.classList.remove('hidden');
+            img.style.opacity = '0.5';
+
+            const timestamp = new Date().getTime();
+            let url = `/generate?t=${timestamp}`;
+            let exportUrl = `/export?t=${timestamp}`;
+            if (seed) {
+                url += `&seed=${seed}`;
+                exportUrl += `&seed=${seed}`;
+            }
+
+            img.src = url;
+            downloadLink.href = url + "&download=true";
+            exportLink.href = exportUrl;
+
+            img.onload = () => {
+                btn.classList.remove('loading');
+                btn.textContent = 'Generate New Face';
+                loader.classList.add('hidden');
+                img.style.opacity = '1';
+                previewImg.src = img.src; // Update 3D Preview
+                updateStatus();
+                updateMetrics();
+            };
+        }
+
+        btn.addEventListener('click', () => generate());
+        seedBtn.addEventListener('click', () => {
+            const seed = seedInput.value;
+            if (seed) generate(seed);
+        });
+
+        async function updateGallery() {
+            try {
+                const res = await fetch('/gallery');
+                const files = await res.json();
+                const grid = document.getElementById('gallery-grid');
+                if (grid.children.length === files.length) return;
+                grid.innerHTML = '';
+                files.reverse().forEach(file => {
+                    const epochMatch = file.match(/\d+/);
+                    const epochNum = epochMatch ? parseInt(epochMatch[0]) : '?';
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    item.style = 'background: var(--glass); border: 1px solid var(--glass-border); border-radius: 1.5rem; padding: 1.5rem; animation: fadeInUp 0.5s ease-out;';
+                    item.innerHTML = `
+                        <div style="width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 1rem; overflow: hidden; margin-bottom: 1rem; border: 1px solid var(--glass-border);">
+                            <img src="/static/gallery/${file}" style="width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated;">
+                        </div>
+                        <div style="font-size: 1.1rem; font-weight: 600; color: var(--primary);">Epoch ${epochNum}</div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4); letter-spacing: 1px;">HISTORICAL SNAPSHOT</div>
+                    `;
+                    grid.appendChild(item);
+                });
+            } catch (e) { console.error("Gallery failed", e); }
+        }
+
+        updateStatus();
+        updateMetrics();
+        updateGallery();
+        setInterval(updateStatus, 10000);
+        setInterval(updateMetrics, 15000);
+        setInterval(updateGallery, 30000);
+    </script>
+</body>
+
+</html>
